@@ -1,0 +1,329 @@
+@page "/"
+@page "/dashboard"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using System.Globalization
+@using RachaAiBlazor.Models
+
+<PageTitle>RachaAí | Painel</PageTitle>
+
+<div class="container py-4 dashboard-page">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="fw-bold mb-1">Olá, Guilherme!</h1>
+            <p class="text-muted mb-0">Acompanhe seus grupos, filtre pendências e registre novos lançamentos sem sair do painel.</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" @onclick="LimparBusca">
+                Limpar busca
+            </button>
+            <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm" @onclick="AbrirFormulario">
+                Novo gasto
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card bg-primary text-white border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <small>Saldo geral</small>
+                    <h3 class="fw-bold mb-0">@SaldoGeral.ToString("C", CulturaBrasil)</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <small class="text-muted">Total a receber</small>
+                    <h3 class="fw-bold text-success mb-0">@TotalReceber.ToString("C", CulturaBrasil)</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <small class="text-muted">Total a pagar</small>
+                    <h3 class="fw-bold text-danger mb-0">@TotalPagar.ToString("C", CulturaBrasil)</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(MensagemSucesso))
+    {
+        <div class="alert alert-success border-0 shadow-sm d-flex justify-content-between align-items-center gap-3" role="status">
+            <span>@MensagemSucesso</span>
+            <button type="button" class="btn btn-sm btn-light" @onclick="LimparMensagem">Fechar</button>
+        </div>
+    }
+
+    @if (MostrarFormulario)
+    {
+        <div class="card border-0 shadow-sm mb-4" id="novo-lancamento">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                    <div>
+                        <h2 class="h5 fw-bold mb-1">Registrar lançamento</h2>
+                        <p class="text-muted mb-0">Adicione um novo valor pendente e atualize o resumo automaticamente.</p>
+                    </div>
+
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="CancelarFormulario">
+                        Cancelar
+                    </button>
+                </div>
+
+                <EditForm Model="NovoLancamento" OnValidSubmit="AdicionarLancamento">
+                    <DataAnnotationsValidator />
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="nomeGrupo">Grupo</label>
+                            <InputText id="nomeGrupo" class="form-control" @bind-Value="NovoLancamento.NomeGrupo" />
+                            <ValidationMessage For="() => NovoLancamento.NomeGrupo" />
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" for="categoriaGrupo">Categoria</label>
+                            <InputText id="categoriaGrupo" class="form-control" @bind-Value="NovoLancamento.Categoria" />
+                            <ValidationMessage For="() => NovoLancamento.Categoria" />
+                        </div>
+
+                        <div class="col-12 col-md-2">
+                            <label class="form-label" for="tipoLancamento">Tipo</label>
+                            <InputSelect id="tipoLancamento" class="form-select" @bind-Value="NovoLancamento.Tipo">
+                                <option value="@TipoLancamento.Pagar">A pagar</option>
+                                <option value="@TipoLancamento.Receber">A receber</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" for="valorLancamento">Valor</label>
+                            <InputNumber id="valorLancamento" class="form-control" @bind-Value="NovoLancamento.Valor" step="0.01" />
+                            <ValidationMessage For="() => NovoLancamento.Valor" />
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mt-4">
+                        <small class="text-muted">Se o grupo já existir com o mesmo tipo de pendência, o valor será somado automaticamente.</small>
+
+                        <button type="submit" class="btn btn-primary px-4">
+                            Salvar lançamento
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
+                <div>
+                    <h2 class="h6 fw-bold mb-1">Filtrar grupos</h2>
+                    <p class="text-muted mb-0">Busque por nome do grupo ou categoria.</p>
+                </div>
+                <span class="badge rounded-pill text-bg-light">@(GruposFiltrados.Count()) de @Grupos.Count grupo(s)</span>
+            </div>
+
+            <input type="text"
+                   class="form-control"
+                   placeholder="Buscar grupo ou categoria..."
+                   @bind="Busca"
+                   @bind:event="oninput" />
+        </div>
+    </div>
+
+    <h2 class="h6 fw-bold text-uppercase text-muted mb-3" id="grupos">Seus grupos ativos</h2>
+
+    @if (!Grupos.Any())
+    {
+        <div class="alert alert-info border-0 shadow-sm">
+            Você ainda não participa de nenhum grupo. Registre seu primeiro lançamento para começar.
+        </div>
+    }
+    else if (!GruposFiltrados.Any())
+    {
+        <div class="alert alert-warning border-0 shadow-sm">
+            Nenhum grupo encontrado para a busca atual.
+        </div>
+    }
+    else
+    {
+        @foreach (var grupo in GruposFiltrados)
+        {
+            <GrupoCard Grupo="grupo" />
+        }
+    }
+</div>
+
+<style>
+    .dashboard-page {
+        max-width: 980px;
+    }
+
+    .grupo-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .grupo-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .12) !important;
+        cursor: pointer;
+    }
+
+    #novo-lancamento {
+        scroll-margin-top: 1rem;
+    }
+
+    .dashboard-page .form-label {
+        font-weight: 600;
+    }
+
+    .dashboard-page .validation-message {
+        display: block;
+        font-size: 0.875rem;
+        margin-top: 0.35rem;
+    }
+</style>
+
+@code {
+    private static readonly CultureInfo CulturaBrasil = new("pt-BR");
+    private string Busca = string.Empty;
+    private bool MostrarFormulario;
+    private string? MensagemSucesso;
+    private NovoLancamentoForm NovoLancamento = new();
+
+    private List<Grupo> Grupos = new()
+    {
+        new Grupo
+        {
+            Nome = "República Central",
+            Categoria = "Casa",
+            ValorPendente = 450.50m,
+            NoVermelho = true
+        },
+        new Grupo
+        {
+            Nome = "Churrasco de Domingo",
+            Categoria = "Lazer",
+            ValorPendente = 85.00m,
+            NoVermelho = false
+        },
+        new Grupo
+        {
+            Nome = "Viagem Floripa",
+            Categoria = "Viagem",
+            ValorPendente = 1200.00m,
+            NoVermelho = false
+        },
+        new Grupo
+        {
+            Nome = "Netflix & Internet",
+            Categoria = "Contas",
+            ValorPendente = 35.90m,
+            NoVermelho = true
+        }
+    };
+
+    private IEnumerable<Grupo> GruposFiltrados =>
+        OrdenarGrupos(
+            string.IsNullOrWhiteSpace(Busca)
+                ? Grupos
+                : Grupos.Where(g =>
+                    g.Nome.Contains(Busca, StringComparison.OrdinalIgnoreCase) ||
+                    g.Categoria.Contains(Busca, StringComparison.OrdinalIgnoreCase)));
+
+    private decimal TotalReceber =>
+        Grupos.Where(g => !g.NoVermelho).Sum(g => g.ValorPendente);
+
+    private decimal TotalPagar =>
+        Grupos.Where(g => g.NoVermelho).Sum(g => g.ValorPendente);
+
+    private decimal SaldoGeral =>
+        TotalReceber - TotalPagar;
+
+    private void AbrirFormulario()
+    {
+        MostrarFormulario = true;
+        MensagemSucesso = null;
+    }
+
+    private void CancelarFormulario()
+    {
+        MostrarFormulario = false;
+        ResetarFormulario();
+    }
+
+    private void AdicionarLancamento()
+    {
+        var nome = NovoLancamento.NomeGrupo.Trim();
+        var categoria = NovoLancamento.Categoria.Trim();
+        var valor = NovoLancamento.Valor!.Value;
+        var noVermelho = NovoLancamento.Tipo == TipoLancamento.Pagar;
+
+        var grupoExistente = Grupos.FirstOrDefault(g =>
+            g.NoVermelho == noVermelho &&
+            string.Equals(g.Nome, nome, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(g.Categoria, categoria, StringComparison.OrdinalIgnoreCase));
+
+        if (grupoExistente is null)
+        {
+            Grupos.Insert(0, new Grupo
+            {
+                Nome = nome,
+                Categoria = categoria,
+                ValorPendente = valor,
+                NoVermelho = noVermelho
+            });
+        }
+        else
+        {
+            grupoExistente.ValorPendente += valor;
+        }
+
+        MensagemSucesso = grupoExistente is null
+            ? $"Lançamento salvo em {nome}."
+            : $"Pendência atualizada em {nome}.";
+
+        MostrarFormulario = false;
+        ResetarFormulario();
+    }
+
+    private void LimparBusca() => Busca = string.Empty;
+
+    private void LimparMensagem() => MensagemSucesso = null;
+
+    private static IEnumerable<Grupo> OrdenarGrupos(IEnumerable<Grupo> grupos) =>
+        grupos.OrderByDescending(g => g.NoVermelho)
+              .ThenByDescending(g => g.ValorPendente)
+              .ThenBy(g => g.Nome);
+
+    private void ResetarFormulario()
+    {
+        NovoLancamento = new NovoLancamentoForm();
+    }
+
+    private enum TipoLancamento
+    {
+        Pagar,
+        Receber
+    }
+
+    private sealed class NovoLancamentoForm
+    {
+        [Required(ErrorMessage = "Informe o nome do grupo.")]
+        public string NomeGrupo { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Informe a categoria.")]
+        public string Categoria { get; set; } = string.Empty;
+
+        public TipoLancamento Tipo { get; set; } = TipoLancamento.Pagar;
+
+        [Range(typeof(decimal), "0,01", "999999,99", ErrorMessage = "Informe um valor maior que zero.")]
+        public decimal? Valor { get; set; }
+    }
+}

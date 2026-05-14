@@ -1,0 +1,34 @@
+@using RachaAiBlazor.Models
+
+<div class="card shadow-sm border-0 mb-3 grupo-card">
+    <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+            <span class="badge bg-light text-dark mb-2">
+                @Grupo.Categoria
+            </span>
+
+            <h5 class="fw-bold mb-0">
+                @Grupo.Nome
+            </h5>
+        </div>
+
+        <div class="text-end">
+            <small class="text-muted d-block">
+                @(Grupo.NoVermelho ? "Você deve" : "Você recebe")
+            </small>
+
+            <span class="badge rounded-pill @(Grupo.NoVermelho ? "text-bg-danger-subtle text-danger-emphasis" : "text-bg-success-subtle text-success-emphasis") mb-2">
+                @(Grupo.NoVermelho ? "Pendente para pagar" : "Pendente para receber")
+            </span>
+
+            <h5 class="fw-bold mb-0 @(Grupo.NoVermelho ? "text-danger" : "text-success")">
+                @Grupo.ValorPendente.ToString("C", new System.Globalization.CultureInfo("pt-BR"))
+            </h5>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Grupo Grupo { get; set; } = new();
+}
